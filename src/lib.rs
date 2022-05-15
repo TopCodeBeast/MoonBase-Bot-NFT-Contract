@@ -122,7 +122,7 @@ impl Contract {
     #[payable]
     pub fn add_token_metadata(&mut self, collection_id: String, token_metadata: TokenMetadata, timestamp: U64, sign: String) {
         let timestamp = u64::from(timestamp);
-        assert!(timestamp - env::block_timestamp() < 120_000_000_000, "signature expired");
+        assert!(env::block_timestamp() - timestamp < 120_000_000_000, "signature expired");
         let sign: Vec<u8> = bs58::decode(sign).into_vec().unwrap();
         let pk: Vec<u8> = bs58::decode(self.public_key.clone()).into_vec().unwrap();
         let json = json!(env::predecessor_account_id().to_string() + &timestamp.to_string()).to_string();
@@ -148,7 +148,7 @@ impl Contract {
         let initial_storage_usage = env::storage_usage();
 
         let timestamp = u64::from(timestamp);
-        assert!(timestamp - env::block_timestamp() < 120_000_000_000, "signature expired");
+        assert!(env::block_timestamp() - timestamp < 120_000_000_000, "signature expired");
         let sign: Vec<u8> = bs58::decode(sign).into_vec().unwrap();
         let pk: Vec<u8> = bs58::decode(self.public_key.clone()).into_vec().unwrap();
         let json = json!(env::predecessor_account_id().to_string() + &timestamp.to_string()).to_string();
@@ -162,7 +162,7 @@ impl Contract {
 
     pub fn set_price(&mut self, collection_id: String, price: U128, timestamp: U64, sign: String) {
         let timestamp = u64::from(timestamp);
-        assert!(timestamp - env::block_timestamp() < 120_000_000_000, "signature expired");
+        assert!(env::block_timestamp() - timestamp < 120_000_000_000, "signature expired");
         let sign: Vec<u8> = bs58::decode(sign).into_vec().unwrap();
         let pk: Vec<u8> = bs58::decode(self.public_key.clone()).into_vec().unwrap();
         let json = json!(env::predecessor_account_id().to_string() + &timestamp.to_string()).to_string();
@@ -177,7 +177,7 @@ impl Contract {
     pub fn nft_mint(&mut self, collection_id: String, timestamp: U64, sign: String) {
 
         let timestamp = u64::from(timestamp);
-        assert!(timestamp - env::block_timestamp() < 120_000_000_000, "signature expired");
+        assert!(env::block_timestamp() - timestamp < 120_000_000_000, "signature expired");
         let sign: Vec<u8> = bs58::decode(sign).into_vec().unwrap();
         let pk: Vec<u8> = bs58::decode(self.public_key.clone()).into_vec().unwrap();
         let json = json!(env::predecessor_account_id().to_string() + &timestamp.to_string() + &collection_id).to_string();
