@@ -13,7 +13,7 @@ use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::collections::{LazyOption, UnorderedMap, UnorderedSet, LookupMap, Vector};
 use near_sdk::json_types::{U128, U64, Base58CryptoHash};
 use near_sdk::serde::{Serialize, Deserialize};
-use near_sdk::serde_json::json;
+use near_sdk::serde_json::{json, self};
 use near_sdk::{
     assert_one_yocto, env, near_bindgen, require, AccountId, BorshStorageKey, PanicOnDefault, Promise, PromiseOrValue, Balance, CryptoHash, log, bs58,
 };
@@ -95,7 +95,8 @@ impl Contract {
         assert!(env::block_timestamp() - timestamp < 120_000_000_000, "signature expired");
         let sign: Vec<u8> = bs58::decode(sign).into_vec().unwrap();
         let pk: Vec<u8> = bs58::decode(self.public_key.clone()).into_vec().unwrap();
-        verify((env::predecessor_account_id().to_string() + &timestamp.to_string()).into_bytes(), sign.into(), pk.into());
+        let json = json!(env::predecessor_account_id().to_string() + &timestamp.to_string()).to_string();
+        verify(json.into_bytes(), sign.into(), pk.into());
         
         assert!(self.nft_contracts.get(&contract_type).is_some(), "not supported");
 
@@ -124,7 +125,8 @@ impl Contract {
         assert!(timestamp - env::block_timestamp() < 120_000_000_000, "signature expired");
         let sign: Vec<u8> = bs58::decode(sign).into_vec().unwrap();
         let pk: Vec<u8> = bs58::decode(self.public_key.clone()).into_vec().unwrap();
-        verify((env::predecessor_account_id().to_string() + &timestamp.to_string()).into_bytes(), sign.into(), pk.into());
+        let json = json!(env::predecessor_account_id().to_string() + &timestamp.to_string()).to_string();
+        verify(json.into_bytes(), sign.into(), pk.into());
 
         let collection = self.collections.get(&collection_id).unwrap();
         let contract_id = self.nft_contracts.get(&collection.contract_type).unwrap();
@@ -149,7 +151,8 @@ impl Contract {
         assert!(timestamp - env::block_timestamp() < 120_000_000_000, "signature expired");
         let sign: Vec<u8> = bs58::decode(sign).into_vec().unwrap();
         let pk: Vec<u8> = bs58::decode(self.public_key.clone()).into_vec().unwrap();
-        verify((env::predecessor_account_id().to_string() + &timestamp.to_string()).into_bytes(), sign.into(), pk.into());
+        let json = json!(env::predecessor_account_id().to_string() + &timestamp.to_string()).to_string();
+        verify(json.into_bytes(), sign.into(), pk.into());
 
         let mut collection = self.collections.get(&collection_id).unwrap();
         collection.mintable_roles = mintable_roles;
@@ -162,7 +165,8 @@ impl Contract {
         assert!(timestamp - env::block_timestamp() < 120_000_000_000, "signature expired");
         let sign: Vec<u8> = bs58::decode(sign).into_vec().unwrap();
         let pk: Vec<u8> = bs58::decode(self.public_key.clone()).into_vec().unwrap();
-        verify((env::predecessor_account_id().to_string() + &timestamp.to_string()).into_bytes(), sign.into(), pk.into());
+        let json = json!(env::predecessor_account_id().to_string() + &timestamp.to_string()).to_string();
+        verify(json.into_bytes(), sign.into(), pk.into());
 
         let mut collection = self.collections.get(&collection_id).unwrap();
         collection.price = price.into();
@@ -176,7 +180,8 @@ impl Contract {
         assert!(timestamp - env::block_timestamp() < 120_000_000_000, "signature expired");
         let sign: Vec<u8> = bs58::decode(sign).into_vec().unwrap();
         let pk: Vec<u8> = bs58::decode(self.public_key.clone()).into_vec().unwrap();
-        verify((env::predecessor_account_id().to_string() + &collection_id).into_bytes(), sign.into(), pk.into());
+        let json = json!(env::predecessor_account_id().to_string() + &timestamp.to_string() + &collection_id).to_string();
+        verify(json.into_bytes(), sign.into(), pk.into());
 
         let sender_id = env::predecessor_account_id();
         let collection = self.collections.get(&collection_id).unwrap();
