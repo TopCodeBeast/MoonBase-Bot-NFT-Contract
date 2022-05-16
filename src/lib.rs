@@ -49,7 +49,8 @@ pub struct Collection {
 	creator_id: AccountId,
     token_metadata: Vector<WrappedTokenMetadata>,
     mintable_roles: Option<Vec<String>>,
-    price: u128
+    price: u128,
+    royalty: Option<HashMap<AccountId, u32>>
 }
 
 #[derive(BorshDeserialize, BorshSerialize)]
@@ -88,7 +89,7 @@ impl Contract {
     }
 
     #[payable]
-    pub fn create_collection(&mut self, outer_collection_id: String, contract_type: String, guild_id: String, mintable_roles: Option<Vec<String>>, price: U128, timestamp: U64, sign: String) {
+    pub fn create_collection(&mut self, outer_collection_id: String, contract_type: String, guild_id: String, mintable_roles: Option<Vec<String>>, price: U128, royalty: Option<HashMap<AccountId, u32>>, timestamp: U64, sign: String) {
         let initial_storage_usage = env::storage_usage();
         
         let timestamp = u64::from(timestamp);
@@ -100,6 +101,20 @@ impl Contract {
         
         assert!(self.nft_contracts.get(&contract_type).is_some(), "not supported");
 
+        let mut total_perpetual = 0;
+        let mut total_accounts = 0;
+        if let Some(royalty) = royalty.clone() {
+            for (_ , v) in royalty.clone().iter() {
+                total_perpetual += *v;
+                total_accounts += 1;
+            }
+        }
+        assert!(total_accounts <= 10, "royalty exceeds 10 accounts");
+        assert!(
+            total_perpetual <= 9000,
+            "Exceeds maximum royalty -> 9000",
+        );
+
         let collection_id = contract_type.clone() + ":" + &outer_collection_id.clone();
         assert!(self.collections.get(&collection_id).is_none(), "already created");
         let collection = Collection {
@@ -109,7 +124,8 @@ impl Contract {
             creator_id: env::predecessor_account_id(),
             token_metadata: Vector::new([outer_collection_id.clone().as_bytes().to_vec(), "token".as_bytes().to_vec()].concat()),
             mintable_roles,
-            price: price.into()
+            price: price.into(),
+            royalty
         };
         
         self.collections.insert(&collection_id, &collection);
@@ -131,9 +147,12 @@ impl Contract {
         let collection = self.collections.get(&collection_id).unwrap();
         let contract_id = self.nft_contracts.get(&collection.contract_type).unwrap();
         let token_metadata_json = json!(token_metadata);
+        let royalty_json = json!(collection.royalty);
         if collection.contract_type == "paras".to_string() {
             Promise::new(contract_id).function_call("nft_create_series".to_string(), json!({
-                "token_metadata": token_metadata_json
+                "creator_id": env::predecessor_account_id(),
+                "token_metadata": token_metadata_json,
+                "royalty": royalty_json
             }).to_string().into_bytes(), env::attached_deposit() / 2, (env::prepaid_gas() - env::used_gas()) / 3).then(
                 Promise::new(env::current_account_id()).function_call("on_add_token_metadata".to_string(), json!({
                     "collection_id": collection_id,
