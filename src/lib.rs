@@ -150,7 +150,6 @@ impl Contract {
         let royalty_json = json!(collection.royalty);
         if collection.contract_type == "paras".to_string() {
             Promise::new(contract_id).function_call("nft_create_series".to_string(), json!({
-                "creator_id": env::predecessor_account_id(),
                 "token_metadata": token_metadata_json,
                 "royalty": royalty_json
             }).to_string().into_bytes(), env::attached_deposit() / 2, (env::prepaid_gas() - env::used_gas()) / 3).then(
