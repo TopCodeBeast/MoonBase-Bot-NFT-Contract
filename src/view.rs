@@ -10,6 +10,7 @@ pub struct CollectionInfo {
     guild_id: String,
 	creator_id: AccountId,
     mintable_roles: Option<Vec<String>>,
+    royalty: Option<HashMap<AccountId, u32>>,
     price: U128
 }
 
@@ -25,6 +26,7 @@ impl Contract {
             guild_id: collection.guild_id, 
             creator_id: collection.creator_id, 
             mintable_roles: collection.mintable_roles, 
+            royalty: collection.royalty,
             price: collection.price.into() 
         }
     }
@@ -44,6 +46,7 @@ impl Contract {
                 guild_id: collection.guild_id, 
                 creator_id: collection.creator_id, 
                 mintable_roles: collection.mintable_roles, 
+                royalty: collection.royalty,
                 price: collection.price.into() 
             }
         })
