@@ -25,7 +25,6 @@ pub mod utils;
 pub mod internal;
 pub mod view;
 pub mod resolver;
-pub mod signature;
 pub mod owner;
 
 pub type GuildId = String;
