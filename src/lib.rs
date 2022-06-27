@@ -42,6 +42,18 @@ pub struct Contract {
 }
 
 #[derive(BorshDeserialize, BorshSerialize)]
+pub struct OldCollection {
+    outer_collection_id: String,
+    contract_type: String,
+    guild_id: String,
+	creator_id: AccountId,
+    token_metadata: Vector<WrappedTokenMetadata>,
+    mintable_roles: Option<Vec<String>>,
+    price: u128,
+    royalty: Option<HashMap<AccountId, u32>>,
+}
+
+#[derive(BorshDeserialize, BorshSerialize)]
 pub struct Collection {
     outer_collection_id: String,
     contract_type: String,
@@ -50,7 +62,8 @@ pub struct Collection {
     token_metadata: Vector<WrappedTokenMetadata>,
     mintable_roles: Option<Vec<String>>,
     price: u128,
-    royalty: Option<HashMap<AccountId, u32>>
+    royalty: Option<HashMap<AccountId, u32>>,
+    mint_count_limit: Option<u32>
 }
 
 #[derive(BorshDeserialize, BorshSerialize)]
@@ -88,8 +101,28 @@ impl Contract {
         }
     }
 
+    pub fn fix(&mut self) {
+        assert!(self.owner_id == env::predecessor_account_id(), "owner only");
+        let keys = self.collections.keys_as_vector().to_vec();
+        for key in keys {
+            let key_raw = key.try_to_vec().unwrap();
+            let old_collection = OldCollection::try_from_slice(&self.collections.remove_raw(&key_raw).unwrap()).unwrap();
+            self.collections.insert(&key, &Collection { 
+                outer_collection_id: old_collection.outer_collection_id,
+                contract_type: old_collection.contract_type,
+                guild_id: old_collection.guild_id,
+                creator_id: old_collection.creator_id,
+                token_metadata: old_collection.token_metadata,
+                mintable_roles: old_collection.mintable_roles,
+                price: old_collection.price,
+                royalty: old_collection.royalty,
+                mint_count_limit: None
+            });
+        }
+    }
+
     #[payable]
-    pub fn create_collection(&mut self, outer_collection_id: String, contract_type: String, guild_id: String, mintable_roles: Option<Vec<String>>, price: U128, royalty: Option<HashMap<AccountId, u32>>, timestamp: U64, sign: String) {
+    pub fn create_collection(&mut self, outer_collection_id: String, contract_type: String, guild_id: String, mintable_roles: Option<Vec<String>>, price: U128, royalty: Option<HashMap<AccountId, u32>>, mint_count_limit: Option<u32>, timestamp: U64, sign: String) {
         let initial_storage_usage = env::storage_usage();
         
         let timestamp = u64::from(timestamp);
@@ -125,7 +158,8 @@ impl Contract {
             token_metadata: Vector::new([outer_collection_id.clone().as_bytes().to_vec(), "token".as_bytes().to_vec()].concat()),
             mintable_roles,
             price: price.into(),
-            royalty
+            royalty,
+            mint_count_limit
         };
         
         self.collections.insert(&collection_id, &collection);
