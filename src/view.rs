@@ -55,4 +55,13 @@ impl Contract {
         })
         .collect()
     }
+
+    pub fn get_minted_count_by_collection(&self, collection_id: String) -> U64 {
+        let collection = self.collections.get(&collection_id).unwrap();
+        let mut total_minted = 0;
+        collection.token_metadata.iter().for_each(|item| {
+            total_minted += item.minted_count;
+        });
+        total_minted.into()
+    }
 }

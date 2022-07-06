@@ -238,10 +238,15 @@ impl Contract {
         let collection = self.collections.get(&collection_id).unwrap();
         assert!(collection.price < env::attached_deposit(), "not enough balance");
         let nft_contract_id = self.nft_contracts.get(&collection.contract_type).unwrap();
-        let mut total_copies: u64 = 0;
+        let mut total_copies = 0;
+        let mut total_minted = 0;
         collection.token_metadata.iter().for_each(|item| {
             total_copies += item.copies - item.minted_count;
+            total_minted += item.minted_count;
         });
+
+        assert!(collection.mint_count_limit.is_none() || collection.mint_count_limit.unwrap() > total_minted as u32, "exceed mint count limit");
+
         let mut random_index = u64::try_from_slice(&env::keccak512(&env::random_seed())[0..8]).unwrap() / total_copies;
         let mut token_metadata_index: u64 = 0;
         for (i, item) in collection.token_metadata.iter().enumerate() {
