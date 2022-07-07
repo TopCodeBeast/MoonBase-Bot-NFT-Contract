@@ -12,7 +12,8 @@ pub struct CollectionInfo {
     mintable_roles: Option<Vec<String>>,
     royalty: Option<HashMap<AccountId, u32>>,
     price: U128,
-    mint_count_limit: Option<u32>
+    mint_count_limit: Option<u32>,
+    series_count: u32
 }
 
 
@@ -29,7 +30,8 @@ impl Contract {
             mintable_roles: collection.mintable_roles, 
             royalty: collection.royalty,
             price: collection.price.into(),
-            mint_count_limit: collection.mint_count_limit
+            mint_count_limit: collection.mint_count_limit,
+            series_count: collection.token_metadata.len() as u32
         }
     }
 
@@ -50,7 +52,8 @@ impl Contract {
                 mintable_roles: collection.mintable_roles, 
                 royalty: collection.royalty,
                 price: collection.price.into(), 
-                mint_count_limit: collection.mint_count_limit
+                mint_count_limit: collection.mint_count_limit,
+                series_count: collection.token_metadata.len() as u32
             }
         })
         .collect()

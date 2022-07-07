@@ -1,6 +1,7 @@
 
 use std::collections::HashMap;
 use std::convert::TryInto;
+use std::ops::Sub;
 use std::thread::AccessError;
 
 use near_contract_standards::non_fungible_token::events::{NftMint, NftBurn};
@@ -249,7 +250,7 @@ impl Contract {
             if random_index < item.copies - item.minted_count {
                 token_metadata_index = i as u64;
             }
-            random_index -= item.copies - item.minted_count;
+            random_index = random_index.checked_sub(item.copies - item.minted_count).unwrap_or(0);
         }
         let token_metadata = collection.token_metadata.get(token_metadata_index).unwrap();
         let promise = Promise::new(nft_contract_id);
