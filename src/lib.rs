@@ -101,26 +101,6 @@ impl Contract {
         }
     }
 
-    pub fn fix(&mut self) {
-        assert!(self.owner_id == env::predecessor_account_id(), "owner only");
-        let keys = self.collections.keys_as_vector().to_vec();
-        for key in keys {
-            let key_raw = key.try_to_vec().unwrap();
-            let old_collection = OldCollection::try_from_slice(&self.collections.remove_raw(&key_raw).unwrap()).unwrap();
-            self.collections.insert(&key, &Collection { 
-                outer_collection_id: old_collection.outer_collection_id,
-                contract_type: old_collection.contract_type,
-                guild_id: old_collection.guild_id,
-                creator_id: old_collection.creator_id,
-                token_metadata: old_collection.token_metadata,
-                mintable_roles: old_collection.mintable_roles,
-                price: old_collection.price,
-                royalty: old_collection.royalty,
-                mint_count_limit: None
-            });
-        }
-    }
-
     #[payable]
     pub fn create_collection(&mut self, outer_collection_id: String, contract_type: String, guild_id: String, mintable_roles: Option<Vec<String>>, price: U128, royalty: Option<HashMap<AccountId, u32>>, mint_count_limit: Option<u32>, timestamp: U64, sign: String) {
         let initial_storage_usage = env::storage_usage();
@@ -192,6 +172,8 @@ impl Contract {
                     "token_metadata": token_metadata_json
                 }).to_string().into_bytes(), env::attached_deposit() / 2, (env::prepaid_gas() - env::used_gas()) / 3)
             );
+        } else if collection.contract_type == "mintbase".to_string() {
+            self.internal_add_token_metadata(collection_id, token_metadata, None);
         }
     }
 
@@ -253,18 +235,40 @@ impl Contract {
             random_index = random_index.checked_sub(item.copies - item.minted_count).unwrap_or(0);
         }
         let token_metadata = collection.token_metadata.get(token_metadata_index).unwrap();
-        let promise = Promise::new(nft_contract_id);
+        let mut promise = Promise::new(nft_contract_id);
         if collection.contract_type == "paras".to_string() {
-            promise.function_call("nft_mint".to_string(), json!({
+            promise = promise.function_call("nft_mint".to_string(), json!({
                 "token_series_id": token_metadata.token_series_id.unwrap(),
                 "receiver_id": sender_id 
-            }).to_string().into_bytes(), env::attached_deposit() - collection.price, (env::prepaid_gas() - env::used_gas()) / 3).then(
-                Promise::new(env::current_account_id()).function_call("on_nft_mint".to_string(), json!({
-                    "collection_id": collection_id,
-                    "token_metadata_index": U64::from(token_metadata_index)
-                }).to_string().into_bytes(), collection.price, (env::prepaid_gas() - env::used_gas()) / 3)
-            );
+            }).to_string().into_bytes(), env::attached_deposit() - collection.price, (env::prepaid_gas() - env::used_gas()) / 3);
+        } else if collection.contract_type == "mintbase".to_string() {
+            
+            let royalty_args = match collection.royalty {
+                Some(royalty) => {
+                    let mut total_perpetual: u32 = 0;
+                    for (_ , v) in royalty.clone().iter() {
+                        total_perpetual += *v;
+                    }
+                    Some(json!({
+                        "percentage": total_perpetual,
+                        "split_between": json!(royalty)
+                    }))
+                },
+                None => None
+            };
+            promise = promise.function_call("nft_batch_mint".to_string(), json!({
+                "owner_id": sender_id,
+                "metadata": token_metadata.metadata,
+                "num_to_mint": 1,
+                "royalty_args": royalty_args
+            }).to_string().into_bytes(), env::attached_deposit() - collection.price, (env::prepaid_gas() - env::used_gas()) / 3);
         }
+        promise.then(
+            Promise::new(env::current_account_id()).function_call("on_nft_mint".to_string(), json!({
+                "collection_id": collection_id,
+                "token_metadata_index": U64::from(token_metadata_index)
+            }).to_string().into_bytes(), collection.price, (env::prepaid_gas() - env::used_gas()) / 3)
+        );
     }
 
 }
